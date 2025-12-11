@@ -6,6 +6,14 @@
 // Forward declaration
 class Edge;
 
+// Enum to represent cell types
+enum CellType {
+    UNMARKED,
+    HEAD,
+    MIDDLE,
+    TAIL
+};
+
 class Cell {
 public:
     static int idCounter;
@@ -14,6 +22,7 @@ public:
     int col;
     int degree;
     bool visited;
+    CellType cellType;
     std::vector<Edge*> edges;
     
     Cell(int r, int c);

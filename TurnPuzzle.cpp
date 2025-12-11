@@ -246,8 +246,56 @@ void TurnPuzzle::generateSolution() {
         }
         
     } while (!addableEdges.empty());
-    
+}
 
+void TurnPuzzle::markCells() {
+    std::cout << "Marking cells as HEAD, MIDDLE, TAIL..." << std::endl;
+    
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    
+    resetVisitedFlags();
+    
+    // Collect all cells with degree 1 (endpoints)
+    std::vector<Cell*> endpoints;
+    for (int i = 0; i < gridSize; i++) {
+        for (int j = 0; j < gridSize; j++) {
+            if (cells[i][j]->degree == 1) {
+                endpoints.push_back(cells[i][j]);
+            }
+        }
+    }
+    
+    // Shuffle endpoints for random selection
+    std::shuffle(endpoints.begin(), endpoints.end(), gen);
+    
+    // Process each unvisited endpoint
+    for (Cell* startCell : endpoints) {
+        if (!startCell->visited && startCell->degree == 1) {
+            Path path;
+            findPath(startCell, path);
+            
+            if (path.getLength() > 0) {
+                // Mark first cell as HEAD
+                path.cells[0]->cellType = HEAD;
+                
+                // Mark middle cells as MIDDLE
+                for (int i = 1; i < path.getLength() - 1; i++) {
+                    path.cells[i]->cellType = MIDDLE;
+                }
+                
+                // Mark last cell as TAIL
+                if (path.getLength() > 1) {
+                    path.cells[path.getLength() - 1]->cellType = TAIL;
+                } else {
+                    // If path has only one cell, mark it as both HEAD and TAIL (just HEAD)
+                    path.cells[0]->cellType = HEAD;
+                }
+            }
+        }
+    }
+    
+    std::cout << "Cells marked!" << std::endl;
 }
 
 void TurnPuzzle::printSolution() const {
@@ -318,13 +366,42 @@ void TurnPuzzle::exportToSVG(const std::string& filename) const {
     }
     file << "  </g>\n";
     
-    // Draw cell centers
+    // Draw cell centers based on their type
+    // HEAD cells: solid circles
     file << "  <g fill=\"#2196F3\">\n";
     for (int i = 0; i < gridSize; i++) {
         for (int j = 0; j < gridSize; j++) {
-            int centerX = padding + j * cellSize + cellSize / 2;
-            int centerY = padding + i * cellSize + cellSize / 2;
-            file << "    <circle cx=\"" << centerX << "\" cy=\"" << centerY << "\" r=\"4\"/>\n";
+            if (cells[i][j]->cellType == HEAD) {
+                int centerX = padding + j * cellSize + cellSize / 2;
+                int centerY = padding + i * cellSize + cellSize / 2;
+                file << "    <circle cx=\"" << centerX << "\" cy=\"" << centerY << "\" r=\"6\"/>\n";
+            }
+        }
+    }
+    file << "  </g>\n";
+    
+    // MIDDLE cells: small filled circles
+    file << "  <g fill=\"#2196F3\">\n";
+    for (int i = 0; i < gridSize; i++) {
+        for (int j = 0; j < gridSize; j++) {
+            if (cells[i][j]->cellType == MIDDLE) {
+                int centerX = padding + j * cellSize + cellSize / 2;
+                int centerY = padding + i * cellSize + cellSize / 2;
+                file << "    <circle cx=\"" << centerX << "\" cy=\"" << centerY << "\" r=\"4\"/>\n";
+            }
+        }
+    }
+    file << "  </g>\n";
+    
+    // TAIL cells: empty circles (stroke only)
+    file << "  <g fill=\"none\" stroke=\"#2196F3\" stroke-width=\"2\">\n";
+    for (int i = 0; i < gridSize; i++) {
+        for (int j = 0; j < gridSize; j++) {
+            if (cells[i][j]->cellType == TAIL) {
+                int centerX = padding + j * cellSize + cellSize / 2;
+                int centerY = padding + i * cellSize + cellSize / 2;
+                file << "    <circle cx=\"" << centerX << "\" cy=\"" << centerY << "\" r=\"6\"/>\n";
+            }
         }
     }
     file << "  </g>\n";

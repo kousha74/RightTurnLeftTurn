@@ -73,6 +73,7 @@ public:
     void printSolution() const;
     void resetVisitedFlags();
     void findPath(Cell* startCell, Path& path);
+    void markCells();
     
 private:
     // Private member variables

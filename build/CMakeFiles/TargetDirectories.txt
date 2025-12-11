@@ -1,0 +1,3 @@
+/home/f49960a/Documents/AI-Generated/RightTurnLeftTurn/build/CMakeFiles/HelloWorld.dir
+/home/f49960a/Documents/AI-Generated/RightTurnLeftTurn/build/CMakeFiles/edit_cache.dir
+/home/f49960a/Documents/AI-Generated/RightTurnLeftTurn/build/CMakeFiles/rebuild_cache.dir

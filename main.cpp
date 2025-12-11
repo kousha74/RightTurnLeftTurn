@@ -11,6 +11,9 @@ int main() {
     // Generate the solution
     puzzle.generateSolution();
     
+    // Mark cells as HEAD, MIDDLE, TAIL
+    puzzle.markCells();
+    
     // Print the solution to console
     puzzle.printSolution();
     
