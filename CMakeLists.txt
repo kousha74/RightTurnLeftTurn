@@ -8,4 +8,4 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Add executable
-add_executable(HelloWorld main.cpp TurnPuzzle.cpp Cell.cpp Path.cpp)
+add_executable(HelloWorld main.cpp TurnPuzzle.cpp Cell.cpp Edge.cpp Path.cpp)

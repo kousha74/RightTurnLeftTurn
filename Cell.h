@@ -2,6 +2,7 @@
 #define CELL_H
 
 #include <vector>
+#include "DataTypes.h"
 
 // Forward declaration
 class Edge;
@@ -10,17 +11,18 @@ class Edge;
 enum CellType {
     UNMARKED,
     HEAD,
-    MIDDLE,
     TAIL
 };
 
 class Cell {
+private:
+    int degree;
+
 public:
     static int idCounter;
     int id;
     int row;
     int col;
-    int degree;
     bool visited;
     CellType cellType;
     std::vector<Edge*> edges;
@@ -28,6 +30,11 @@ public:
     Cell(int r, int c);
     
     void addEdge(Edge* edge);
+    TurnPuzzleTypes::SolveOutput Solve();
+    
+    // Getter and setter for degree
+    int getDegree() const;
+    void setDegree(int deg);
 };
 
 #endif // CELL_H

@@ -5,57 +5,16 @@
 #include <string>
 #include "Path.h"
 #include "Cell.h"
+#include "Edge.h"
+#include "DataTypes.h"
 
-// Forward declarations
-class Edge;
-
-// Enum to represent edge state
-enum EdgeState {
-    UNDECIDED,
-    INCLUDED,
-    EXCLUDED
-};
-
-// Enum to represent connections in each cell
+// Direction enum for cell connections (bitmask)
 enum Direction {
     NONE = 0,
     UP = 1,
     RIGHT = 2,
     DOWN = 4,
     LEFT = 8
-};
-
-// Edge class
-class Edge {
-public:
-    Cell* cell1;
-    Cell* cell2;
-    EdgeState state;
-    
-    Edge(Cell* c1, Cell* c2) : cell1(c1), cell2(c2), state(UNDECIDED) {}
-    
-    bool isUndecided() const { return state == UNDECIDED; }
-    bool isIncluded() const { return state == INCLUDED; }
-    bool isExcluded() const { return state == EXCLUDED; }
-    
-    void setState(EdgeState newState) {
-        if (state == newState) return;
-        
-        // Handle degree changes
-        if (state == INCLUDED) {
-            // Changing from INCLUDED to something else - decrease degree
-            cell1->degree--;
-            cell2->degree--;
-        }
-        
-        if (newState == INCLUDED) {
-            // Changing to INCLUDED - increase degree
-            cell1->degree++;
-            cell2->degree++;
-        }
-        
-        state = newState;
-    }
 };
 
 class TurnPuzzle {
@@ -73,35 +32,29 @@ public:
     void printSolution() const;
     void resetVisitedFlags();
     void findPath(Cell* startCell, Path& path);
+    bool findPaths(std::vector<Path>& paths);
     void markCells();
+    bool solvePuzzle();  // Tries to pair up HEAD and TAIL cells
+    bool FindDifferentSolution(std::vector<EdgeState>& edgeStates);  // Tries to find a different valid solution
+    TurnPuzzleTypes::SolveOutput SolveCells();  // Calls Solve() on each cell
+    bool isSolved();  // Checks if puzzle is solved (HEAD/TAIL degree=1, others degree=2)
     
 private:
     // Private member variables
     int gridSize;
-    std::vector<std::vector<Cell*>> cells;  // 2D grid of cells
+    std::vector<Cell*> cells;  // Flat array of all cells
     std::vector<Edge*> edges;               // All edges
-    
-    // Legacy - keeping for compatibility
-    std::vector<std::vector<int>> grid; // Each cell stores a bitmask of connections
-    std::vector<std::vector<int>> pathId; // Each cell stores which path it belongs to (-1 if none)
-    
-    // Path tracking
-    int nextPathId;
-    std::vector<TurnType> pathTypes; // Turn type for each path
+    std::vector<EdgeState> originalSolution;  // Original solution edge states
     
     // Helper functions
     void initializeGrid();
     void initializeEdges();
-    int getConnectionCount(int row, int col) const;
-    bool hasConnection(int row, int col, int direction) const;
+    Cell* getCell(int row, int col) const;  // Access cell by row/col
+    void SaveEdgeStates(std::vector<EdgeState>& edgeStates);
+    void RestoreEdgeStates(const std::vector<EdgeState>& edgeStates);
     bool canAddEdge(const Edge& edge);
-    int getOppositeDirection(int direction) const;
-    int getRightTurn(int direction) const;
-    int getLeftTurn(int direction) const;
-    int getDirectionBetween(int r1, int c1, int r2, int c2) const;
-    TurnType getTurnType(int fromDir, int toDir) const;
-    TurnType getPathTurnType(int pathIdx) const;
-    void updatePathType(int pathIdx);
+    bool tryConnectHeadToTail(Cell* head, Cell* tail, std::vector<Cell*>& unpairedHeads, std::vector<Cell*>& unpairedTails);
+    bool findPathBetween(Cell* start, Cell* end, Path& path);
 };
 
 #endif // TURNPUZZLE_H

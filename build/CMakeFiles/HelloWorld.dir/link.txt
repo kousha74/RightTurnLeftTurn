@@ -1,1 +1,0 @@
-/usr/bin/c++ CMakeFiles/HelloWorld.dir/main.cpp.o CMakeFiles/HelloWorld.dir/TurnPuzzle.cpp.o CMakeFiles/HelloWorld.dir/Cell.cpp.o CMakeFiles/HelloWorld.dir/Path.cpp.o -o HelloWorld 
