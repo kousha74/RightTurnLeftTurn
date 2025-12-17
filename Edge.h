@@ -8,7 +8,8 @@ class Cell;
 enum EdgeState {
     UNDECIDED,
     INCLUDED,
-    EXCLUDED
+    EXCLUDED,
+    DELETED
 };
 
 class Edge {
@@ -22,6 +23,7 @@ public:
     bool isUndecided() const;
     bool isIncluded() const;
     bool isExcluded() const;
+    bool isDeleted() const;
     
     void setState(EdgeState newState);
 };

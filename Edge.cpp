@@ -15,6 +15,10 @@ bool Edge::isExcluded() const {
     return state == EXCLUDED;
 }
 
+bool Edge::isDeleted() const {
+    return state == DELETED;
+}
+
 void Edge::setState(EdgeState newState) {
     if (state == newState) return;
     
@@ -31,5 +35,10 @@ void Edge::setState(EdgeState newState) {
         cell2->setDegree(cell2->getDegree() + 1);
     }
     
+    if (state != DELETED && newState == DELETED) {
+        // Restoring from DELETED - no degree change needed
+        int x = 0;
+        x++;
+    }
     state = newState;
 }

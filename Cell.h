@@ -10,8 +10,7 @@ class Edge;
 // Enum to represent cell types
 enum CellType {
     UNMARKED,
-    HEAD,
-    TAIL
+    HEAD
 };
 
 class Cell {

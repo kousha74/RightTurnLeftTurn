@@ -13,9 +13,36 @@ void Cell::addEdge(Edge* edge) {
 }
 
 TurnPuzzleTypes::SolveOutput Cell::Solve() {
+    // Special case: cells with degree 0
+    if (degree == 0) {
+        int undecidedCount = 0;
+        Edge* undecidedEdge = nullptr;
+        
+        for (Edge* edge : edges) {
+            if (edge->isUndecided()) {
+                undecidedCount++;
+                undecidedEdge = edge;
+            }
+        }
+        
+        if (undecidedCount == 0) {
+            // No undecided edges and degree is 0 - FAIL
+            return TurnPuzzleTypes::SolveOutput::SOLVE_FAILED;
+        }
+        
+        if (undecidedCount == 1) {
+            // Exactly one undecided edge - mark it as INCLUDED
+            undecidedEdge->setState(INCLUDED);
+            return TurnPuzzleTypes::SolveOutput::SOLVE_UPDATED;
+        }
+        
+        // More than one undecided edge - no change yet
+        return TurnPuzzleTypes::SolveOutput::SOLVE_NO_CHANGE;
+    }
+    
     // Determine maximum allowed degree based on cell type
     int maxDegree;
-    if (cellType == HEAD || cellType == TAIL) {
+    if (cellType == HEAD) {
         maxDegree = 1;
     } else { // UNMARKED
         maxDegree = 2;
@@ -39,31 +66,6 @@ TurnPuzzleTypes::SolveOutput Cell::Solve() {
                        : TurnPuzzleTypes::SolveOutput::SOLVE_NO_CHANGE;
     }
     
-    // Check if remaining undecided edges must all be included
-    // degree < maxDegree at this point
-    int needed = maxDegree - degree;
-    int undecidedCount = 0;
-    
-    for (Edge* edge : edges) {
-        if (edge->isUndecided()) {
-            undecidedCount++;
-        }
-    }
-    
-    if (undecidedCount < needed) {
-        // Not enough edges to reach required degree (FAIL)
-        return TurnPuzzleTypes::SolveOutput::SOLVE_FAILED;
-    }
-
-    if (undecidedCount == needed) {
-        // Mark all undecided edges as INCLUDED
-        for (Edge* edge : edges) {
-            if (edge->isUndecided()) {
-                edge->setState(INCLUDED);
-            }
-        }
-        return TurnPuzzleTypes::SolveOutput::SOLVE_UPDATED;
-    }
     
     return TurnPuzzleTypes::SolveOutput::SOLVE_NO_CHANGE;
 }

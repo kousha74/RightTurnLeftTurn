@@ -10,6 +10,14 @@
 // Constructor
 TurnPuzzle::TurnPuzzle(int size) : gridSize(size) {
     std::cout << "TurnPuzzle created with grid size: " << gridSize << "x" << gridSize << std::endl;
+    
+    // Open log file
+    logFile.open("debug.log", std::ios::out | std::ios::trunc);
+    if (logFile.is_open()) {
+        logFile << "=== Turn Puzzle Debug Log ===" << std::endl;
+        logFile << "Grid size: " << gridSize << "x" << gridSize << std::endl;
+    }
+    
     initializeGrid();
     initializeEdges();
 }
@@ -24,6 +32,12 @@ TurnPuzzle::~TurnPuzzle() {
     // Clean up edges
     for (Edge* edge : edges) {
         delete edge;
+    }
+    
+    // Close log file
+    if (logFile.is_open()) {
+        logFile << "=== End of Log ===" << std::endl;
+        logFile.close();
     }
     
     std::cout << "TurnPuzzle destroyed" << std::endl;
@@ -106,9 +120,12 @@ bool TurnPuzzle::findPaths(std::vector<Path>& paths) {
             
             // Only add non-empty paths
             if (path.getLength() > 0) {
-                // Check if the last cell is a TAIL cell
-                if (path.cells[path.getLength() - 1]->cellType != TAIL) {
-                    return false;
+                // Check if the last cell in the path is a HEAD cell
+                if (path.getLength() > 1) {
+                    Cell* lastCell = path.cells[path.getLength() - 1];
+                    if (lastCell->cellType == HEAD) {
+                        return false;  // Path ends with HEAD - invalid
+                    }
                 }
                 
                 // Calculate turn type and check if it's mixed
@@ -220,8 +237,8 @@ bool TurnPuzzle::canAddEdge(const Edge& edge) {
 void TurnPuzzle::generateSolution() {
     std::cout << "Generating solution..." << std::endl;
     
-    std::random_device rd;
-    std::mt19937 gen(rd());
+    // Use fixed seed for reproducibility
+    std::mt19937 gen(42);
     std::vector<Edge*> addableEdges;
     
     do {
@@ -246,7 +263,7 @@ void TurnPuzzle::generateSolution() {
 }
 
 void TurnPuzzle::markCells() {
-    std::cout << "Marking cells as HEAD and TAIL..." << std::endl;
+    std::cout << "Marking cells as HEAD..." << std::endl;
     
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -274,15 +291,7 @@ void TurnPuzzle::markCells() {
                 // Mark first cell as HEAD
                 path.cells[0]->cellType = HEAD;
                 
-                // Middle cells remain UNMARKED (no need to mark them)
-                
-                // Mark last cell as TAIL
-                if (path.getLength() > 1) {
-                    path.cells[path.getLength() - 1]->cellType = TAIL;
-                } else {
-                    // If path has only one cell, mark it as both HEAD and TAIL (just HEAD)
-                    path.cells[0]->cellType = HEAD;
-                }
+                // All other cells remain UNMARKED
             }
         }
     }
@@ -347,6 +356,36 @@ void TurnPuzzle::exportToSVG(const std::string& filename) const {
     }
     file << "  </g>\n";
     
+    // Draw deleted edges as thick black separators at cell borders
+    file << "  <g stroke=\"#000000\" stroke-width=\"6\" stroke-linecap=\"butt\">\n";
+    for (const Edge* edge : edges) {
+        if (edge->isDeleted()) {
+            // Determine if this is a horizontal or vertical edge
+            if (edge->cell1->row == edge->cell2->row) {
+                // Horizontal edge - draw vertical line at border between cells
+                int row = edge->cell1->row;
+                int col = std::max(edge->cell1->col, edge->cell2->col); // Right cell's left border
+                int x = padding + col * cellSize;
+                int y1 = padding + row * cellSize;
+                int y2 = padding + (row + 1) * cellSize;
+                
+                file << "    <line x1=\"" << x << "\" y1=\"" << y1 
+                     << "\" x2=\"" << x << "\" y2=\"" << y2 << "\"/>\n";
+            } else {
+                // Vertical edge - draw horizontal line at border between cells
+                int col = edge->cell1->col;
+                int row = std::max(edge->cell1->row, edge->cell2->row); // Bottom cell's top border
+                int x1 = padding + col * cellSize;
+                int x2 = padding + (col + 1) * cellSize;
+                int y = padding + row * cellSize;
+                
+                file << "    <line x1=\"" << x1 << "\" y1=\"" << y 
+                     << "\" x2=\"" << x2 << "\" y2=\"" << y << "\"/>\n";
+            }
+        }
+    }
+    file << "  </g>\n";
+    
     // Draw included edges
     file << "  <g stroke=\"#2196F3\" stroke-width=\"" << lineThickness << "\" stroke-linecap=\"round\">\n";
     for (const Edge* edge : edges) {
@@ -391,27 +430,33 @@ void TurnPuzzle::exportToSVG(const std::string& filename) const {
     }
     file << "  </g>\n";
     
-    // TAIL cells: empty circles (stroke only)
-    file << "  <g fill=\"none\" stroke=\"#2196F3\" stroke-width=\"2\">\n";
-    for (int i = 0; i < gridSize; i++) {
-        for (int j = 0; j < gridSize; j++) {
-            Cell* cell = getCell(i, j);
-            if (cell->cellType == TAIL) {
-                int centerX = padding + j * cellSize + cellSize / 2;
-                int centerY = padding + i * cellSize + cellSize / 2;
-                file << "    <circle cx=\"" << centerX << "\" cy=\"" << centerY << "\" r=\"6\"/>\n";
-            }
-        }
-    }
-    file << "  </g>\n";
-    
     file << "</svg>\n";
     file.close();
     
     std::cout << "SVG exported to: " << filename << std::endl;
 }
 
-bool TurnPuzzle::solvePuzzle() {
+bool TurnPuzzle::GeneratePuzzle() {
+    std::cout << "Generating puzzle..." << std::endl;
+    
+    // Generate the solution
+    generateSolution();
+    
+    // Mark cells as HEAD
+    markCells();
+    
+    // Export the original solution
+    exportToSVG("solution.svg");
+    
+    std::cout << "Testing for different solution..." << std::endl;
+    
+    // Try to find different solutions
+    solvePuzzle();
+    
+    return true;
+}
+
+void TurnPuzzle::solvePuzzle() {
     std::cout << "Solving puzzle..." << std::endl;
     
     // Clear all edge states to start fresh
@@ -419,8 +464,47 @@ bool TurnPuzzle::solvePuzzle() {
         edge->setState(UNDECIDED);
     }
     
-    std::vector<EdgeState> differentSolution;
-    return FindDifferentSolution(differentSolution);
+    int solutionCount = 0;
+    
+    while (true) {
+        // At the beginning of each loop, mark every edge as UNDECIDED except DELETED edges
+        for (Edge* edge : edges) {
+            if (!edge->isDeleted()) {
+                edge->setState(UNDECIDED);
+            }
+            // If edge is DELETED, leave it alone
+        }
+        
+        int diffIndex = FindDifferentSolution(solutionCount);
+        
+        if (diffIndex == -1) {
+            // No more different solutions found
+            std::cout << "Total different solutions found: " << solutionCount << std::endl;
+            break;  // Exit the loop
+        }
+        
+        solutionCount++;
+        std::cout << "Solution #" << solutionCount << " differs at edge index: " << diffIndex << std::endl;
+        
+        // Mark this edge as DELETED for future searches
+        edges[diffIndex]->setState(DELETED);
+        
+        std::cout << "Marked edge " << diffIndex << " as DELETED, searching for next solution..." << std::endl;
+    }
+    
+    // Clean up: clear all edge states except keep DELETED edges status
+    std::cout << "Cleaning up edge states..." << std::endl;
+    for (Edge* edge : edges) {
+        if (!edge->isDeleted()) {
+            // Clear non-deleted edges to UNDECIDED
+            edge->setState(UNDECIDED);
+        }
+        // If edge is DELETED, keep it as DELETED
+    }
+    
+    // Export the puzzle with DELETED edges visible as separators
+    exportToSVG("problem.svg");
+    std::cout << "Puzzle exported to problem.svg" << std::endl;
 }
 
 
@@ -437,7 +521,29 @@ void TurnPuzzle::RestoreEdgeStates(const std::vector<EdgeState>& edgeStates) {
     }
 }
 
-bool TurnPuzzle::FindDifferentSolution(std::vector<EdgeState>& edgeStates) {
+int TurnPuzzle::FindDifferentEdge(const std::vector<EdgeState>& first, const std::vector<EdgeState>& second) {
+    // If sizes differ, return -1 (invalid comparison)
+    if (first.size() != second.size()) {
+        return -1;
+    }
+    
+    // Find the first edge that differs, excluding DELETED edges
+    for (size_t i = 0; i < first.size(); ++i) {
+        // Skip deleted edges in both vectors
+        if (first[i] == INCLUDED && second[i] != INCLUDED) {
+            return static_cast<int>(i);
+        }
+    }
+    
+    // No difference found - sets are identical (excluding deleted edges)
+    return -1;
+}
+
+int TurnPuzzle::FindDifferentSolution(int solutionNumber) {
+    if (logFile.is_open()) {
+        logFile << "=== Entering FindDifferentSolution ===" << std::endl;
+    }
+    
     TurnPuzzleTypes::SolveOutput result;
     
     while (true) {
@@ -462,7 +568,7 @@ bool TurnPuzzle::FindDifferentSolution(std::vector<EdgeState>& edgeStates) {
     
     if (result == TurnPuzzleTypes::SolveOutput::SOLVE_FAILED)
     {
-        return false;
+        return -1;
     }
 
     // Check if puzzle is solved
@@ -471,11 +577,14 @@ bool TurnPuzzle::FindDifferentSolution(std::vector<EdgeState>& edgeStates) {
         std::vector<EdgeState> currentStates;
         SaveEdgeStates(currentStates);
         
-        if (currentStates != originalSolution) {
+        int diffIndex = FindDifferentEdge(currentStates, originalSolution);
+        if (diffIndex != -1) {
             std::cout << "Found different solution!" << std::endl;
-            SaveEdgeStates(edgeStates);
-            exportToSVG("Solution2.svg");
-            return true;
+            
+            // Create unique filename for this solution
+            std::string filename = "differentSolution" + std::to_string(solutionNumber + 1) + ".svg";
+            exportToSVG(filename);
+            return diffIndex;
         }
         
         std::cout << "Found solution but it matches the original" << std::endl;
@@ -492,7 +601,15 @@ bool TurnPuzzle::FindDifferentSolution(std::vector<EdgeState>& edgeStates) {
     
     // If no undecided edge found, we're done (no different solution)
     if (undecidedEdge == nullptr) {
-        return false;
+        if (logFile.is_open()) {
+            logFile << "No undecided edges found, returning -1" << std::endl;
+        }
+        return -1;
+    }
+    
+    if (logFile.is_open()) {
+        logFile << "Found undecided edge: (" << undecidedEdge->cell1->row << "," << undecidedEdge->cell1->col 
+                  << ") <-> (" << undecidedEdge->cell2->row << "," << undecidedEdge->cell2->col << ")" << std::endl;
     }
     
     // Save current edge states
@@ -500,30 +617,48 @@ bool TurnPuzzle::FindDifferentSolution(std::vector<EdgeState>& edgeStates) {
     SaveEdgeStates(savedStates);
     
     // Try marking the edge as INCLUDED
+    if (logFile.is_open()) {
+        logFile << "Trying edge as INCLUDED..." << std::endl;
+    }
     undecidedEdge->setState(INCLUDED);
-    if (FindDifferentSolution(edgeStates)) {
-        return true;
+    int result1 = FindDifferentSolution(solutionNumber);
+    if (result1 != -1) {
+        return result1;
     }
     
     // Restore edge states and try EXCLUDED
+    if (logFile.is_open()) {
+        logFile << "Backtracking... trying edge as EXCLUDED..." << std::endl;
+    }
     RestoreEdgeStates(savedStates);
     undecidedEdge->setState(EXCLUDED);
-    if (FindDifferentSolution(edgeStates)) {
-        return true;
+    int result2 = FindDifferentSolution(solutionNumber);
+    if (result2 != -1) {
+        return result2;
     }
     
     // Restore edge states before returning
+    if (logFile.is_open()) {
+        logFile << "Both options failed for this edge, backtracking further..." << std::endl;
+    }
     RestoreEdgeStates(savedStates);
     
-    return false;
+    return -1;
 }
 
 bool TurnPuzzle::isSolved() {
+    // First check if all edges are decided (no UNDECIDED edges remain)
+    /*for (Edge* edge : edges) {
+        if (edge->isUndecided()) {
+            return false;  // Puzzle not fully solved yet
+        }
+    }
+    
     for (Cell* cell : cells) {
         int degree = cell->getDegree();
         
-        // HEAD and TAIL cells must have degree 1
-        if (cell->cellType == HEAD || cell->cellType == TAIL) {
+        // HEAD cells must have degree 1
+        if (cell->cellType == HEAD) {
             if (degree != 1) {
                 return false;
             }
@@ -533,8 +668,7 @@ bool TurnPuzzle::isSolved() {
             if (degree != 2) {
                 return false;
             }
-        }
-    }
+        }*/
     
     // Verify paths are valid and cover the whole grid
     std::vector<Path> paths;
@@ -553,6 +687,11 @@ bool TurnPuzzle::isSolved() {
         return false;
     }
     
+    std::cout << "TurnPuzzle::isSolved()" << std::endl;
+    for (const Path& path : paths)
+    {
+        std::cout << "Path Length : " << path.getLength() << std::endl;
+    }
     return true;
 }
 

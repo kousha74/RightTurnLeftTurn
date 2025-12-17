@@ -5,34 +5,20 @@ int main() {
     std::cout << "Turn Puzzle Generator" << std::endl;
     std::cout << "=====================" << std::endl;
     
-    const int maxAttempts = 100;
+    const int maxAttempts = 1;
     bool foundDifferentSolution = false;
     
     for (int attempt = 1; attempt <= maxAttempts; attempt++) {
         std::cout << "\n--- Attempt " << attempt << " ---" << std::endl;
         
         // Create a 8x8 puzzle
-        TurnPuzzle puzzle(10);
+        TurnPuzzle puzzle(6);
         
-        // Generate the solution
-        puzzle.generateSolution();
-        
-        // Mark cells as HEAD and TAIL
-        puzzle.markCells();
-        
-        // Export to SVG
-        if (attempt == 1) {
-            puzzle.exportToSVG("solution.svg");
-        }
-        
-        std::cout << "Testing for different solution..." << std::endl;
-        
-        // Try to find a different solution
-        bool hasDifferentSolution = puzzle.solvePuzzle();
+        // Generate puzzle and test for different solution
+        bool hasDifferentSolution = puzzle.GeneratePuzzle();
         
         if (hasDifferentSolution) {
             std::cout << "\n✓ Found puzzle with different solution on attempt " << attempt << "!" << std::endl;
-            puzzle.exportToSVG("solution.svg");
             foundDifferentSolution = true;
             break;
         } else {
